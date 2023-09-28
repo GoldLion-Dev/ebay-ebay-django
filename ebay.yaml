@@ -1,0 +1,37 @@
+
+name: ebay_api_config
+
+# Trading API Sandbox - https://www.x.com/developers/ebay/products/trading-api
+api.sandbox.ebay.com:
+    compatability: 1200
+    appid:
+   certid:
+   devid:96d594f7-cbdf-434d-b1ed-42d5b1a26adc
+   token:AgAAAA**AQAAAA**aAAAAA**2g5tYQ**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6AAloKnAZWBpgSdj6x9nY+seQ**d8oGAA**AAMAAA**p8LSKr2nZaQB6QoXNB8KVY32Y8UsCjUHi1GOKZWHrIXNCU+umAs1IucyDS7aMs0MS0QruQC5rmfzabXw6hwdwrGuLEvlbHTpJo5tAOtBe7m0rrdwThHLZhjC49ATfrflARnByXwjjIG1XnQFb4gPv2+ZzUMrnDjKyoV/I9ulb6ZKrRINd68GVY2YwKlMC2fKei5Zsvcmp4H7EMB93kso6I/OyLrcuQfCOMmcidI8ShMpihUXquEnjgwXDzvBMP/jaRANVi7Sx18iKPoxRBdykPU87XaGW+uv6ad8a8T7IUHHtW/AajOrsD63eO+6vOtFCZbG+GlR+ApyqC7+Q00puefV1rX+XVnnH8O0lAMKMQaXTTCJw7tuQC/X59Cte+Zkt0a9GQakVhpfk3zzxJmY21PnHsk0g0BRlVxOWZ59xeqqH1NAethxheYGjIR1Tbt2kT750SQRN2JSbzpWPxvqWvO0w86DLGT+dyGPT6tk4IAuVu4MdU+znT1R2YkK+E7QK/p2y1SSSrwNh+w9ELS/PqVOqlaf3EUWNkiPsHu64MqpKFK2glSEZBgg82pZ+cArQahITp6+so6S6/g5CcMZNgKB6Ln3O3tdBh5IpqrGtxzyLprnW61lBxo4ujEWbsLvpWvD/dN8zn8RiHcbDMqyknU48ANzvoPa4NaR45xrhroH023Vjwg8NIiTqHnQhoTOVeUQ7QGkHotKx2UVIbF1VClR89ekQLfcdSqyb0WwsV6rGwEmOWibGtiQTe9CN+67
+
+
+# Trading API - https://www.x.com/developers/ebay/products/trading-api
+api.ebay.com:
+    compatability: 719
+    appid:ronaldha-getItems-PRD-87284ce84-5ae3d9bf
+   certid:PRD-7284ce84eebb-5140-4802-8969-1f50
+   devid:da34ba40-4ce8-472d-a43a-ab641d551ef7
+   token:v^1.1#i^1#f^0#r^1#p^3#I^3#t^Ul4xMF8yOjY5MEM4MUNBOTc4NDlGNDQ0RTZGMDk2MjNCMEU3NjVBXzNfMSNFXjI2MA==
+
+
+# Finding API - https://www.x.com/developers/ebay/products/finding-api
+svcs.ebay.com:
+    appid:ronaldha-getItems-PRD-87284ce84-5ae3d9bf
+
+# Shopping API - https://www.x.com/developers/ebay/products/shopping-api
+open.api.ebay.com:
+   compatability: 967
+   appid:ronaldha-getItems-PRD-87284ce84-5ae3d9bf
+   iaf_token:v^1.1#i^1#f^0#I^3#p^1#r^0#t^H4sIAAAAAAAAAOVYfWwTZRhfu25uzPExiRgEUw6NidDr3bW9XU9aU7qNdW7tRsuoU8S3d+9tx+6j3r2llKAZI0I0KAkiQSRxGCQSUSCIQvyIKIrO/aMSNSF8JIqKGAxiwBhjvLuV0U0CyJq4xP7T3PM+7/P+fr/3ed73uSN6yivvWd24+mK17SZ7Xw/RY7fZyCqisrxs1vhS+9SyEqLAwdbXc2ePo7f0xzk6kKU0Ox/qaVXRoXOZLCk6axkDWEZTWBXoos4qQIY6izg2HmppZimcYNOailROlTBnpC6ApWiB8vlqfYBOQQbAlGFVLsVMqAGMpiHp5yDB+1KAIUnSGNf1DIwoOgIKCmAUQXlchN9FMQmCYj0U66VxhiY7MGc71HRRVQwXnMCCFlzWmqsVYL06VKDrUENGECwYCTXEY6FIXX00McddECuY1yGOAMrow5/CKg+d7UDKwKsvo1vebDzDcVDXMXdwcIXhQdnQJTA3AN+S2s/4vLSHpynOS1AMVxQlG1RNBujqMEyLyLsEy5WFChJR7lqCGmKklkAO5Z+iRohIndP8a8sASRREqAWw+rmhB0KtrVhQUxUg8V3A1QlRBEFZd7XOr3MxtRTj5SDjdfkA9PD+lJBfaDBaXuURK4VVhRdNzXRnVEVzoYEajtSGKtDGcIopMS0kIBNRoZ/3koY+b4e5p4ObmEFdirmtUDaEcFqP196BodkIaWIqg+BQhJEDlkQBDKTTIo+NHLRSMZ89y/QA1oVQmnW7s9ksnvXgqtbppgiCdCdbmuNcF5QBZvqatW75i9ee4BItKhw0Zuoii3JpA8syI1UNAEonFvQyHg9N5HUfDis40voPQwFn9/CCKFaB1PI8RzM0x/t4GgqkvxgVEswnqdvEAVMg55KB1g1RWgIcdHFGnmVkqIk86/EJlIcRoIun/YLL6xcEV8rA4SIFCAkIUynOz/yfCuV6Uz0OOQ2i4uR6sfKcbJ61vK2tMZ5Y0EIubWpqyrW3ZGAyraH6+u55tbXz5WZaTcaSs5gkE7jeargi+bAkGsokjPWLIoBZ60UToVHVEeRHRS/OqWnYqkoilxtbG+zR+FagoVwcSpJhGBXJUDodKdJZXSx6//KYuDHeRbyj/pv76YqsdDNlxxYrc75uBABpETdvIJxTZbdq1jow2g/TvNhCPSreotG4jinWBslBtiI/2HLiqkkX15dyuAZ1NaMZzTYeMzuwhNoNFeM+Q5oqSVBrJ0ddz7KcQSAlwbFW2EVIcBGMtcuW9vsYmvHQ9Kh4cdZVunisHUlFOYodDTfWVruHv+MHS6wf2Wv7gOi1vWe32Yg5xF3kTGJGeekCR+nNU3URQVwEAq6LnYrx6qpBvBvm0kDU7LeUXCR+eIH7uXHHU91/ZR/9/t7HSgo/MfQtIm4b+shQWUpWFXxxIKZdHikjJ0yppjyEn2KMDpLy0h3EzMujDvJWx+TvJm+csHu6oGxvrFxL1pya8vHrzZ8S1UNONltZiaPXVlJd+9aetia7+s7jLfv6y6nPNu89vS0Vcm4iTkzDX5JQ6SEpMkBmVz684dSiVWV3Dzw3s2bfHeO+sYH7+xvu27S77sWtGz45+tVJ7/qvQ0uOHtm27sAkbuKD+87BJ2q2dfecnR3tAuOTz4ajkWf61/+26qx8+tU/zmw/pR6c+MvnO6asXkE4+rZP/2neys1vPLTmwtqXmw6s+TIpLF/05K6P1j7fj45lTxyvrNgohMvr7TP+3LL3YnTPioEDs+3h6NadB0/WlMiH33yl/enz7z6C/3p75bhIuOpwvKLqzAJ2nfj78QuHK7bE3u9INHe8PbBQXPFh9bFvX0vtrDgiTz4X2//F+Y5DayadRZt3Ldw/uJd/A9JPQPz8EQAA
+            
+svcs.ebay.com:
+    compatability: 719
+   appid:ronaldha-getItems-PRD-87284ce84-5ae3d9bf
+   certid:PRD-7284ce84eebb-5140-4802-8969-1f50
+   devid:da34ba40-4ce8-472d-a43a-ab641d551ef7
+   token:v^1.1#i^1#f^0#r^1#p^3#I^3#t^Ul4xMF8yOjY5MEM4MUNBOTc4NDlGNDQ0RTZGMDk2MjNCMEU3NjVBXzNfMSNFXjI2MA==
