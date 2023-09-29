@@ -234,13 +234,13 @@ def listProduct(request):
    api = finding(domain='svcs.ebay.com',config_file='ebay.yaml')
    listedCount = 0
    pageNumber = 1
-   while(listedCount < 10):
+   while(listedCount < 100):
 
         try:
                 api_request = {
                             'storeName': storeName,
                             'paginationInput':{
-                                'entriesPerPage':1,
+                                'entriesPerPage':100,
                                 'pageNumber':pageNumber
                             }
                         }
@@ -268,16 +268,22 @@ def listProduct(request):
                                                 listedCount = listedCount + 1
                                                 print(listedCount)
                                                 serializer.save()
+                                                if(listedCount > 100):
+                                                    break
                                         except:
                                               pass                                                
                                 else:
                                     pass
                             else:
                                  pass  
-                if(pageNumber < 5):
+                if(pageNumber < 100):
                      pageNumber = pageNumber + 1    
                 else:
                      break
+                
+                if(listedCount > 100):
+                     break                                                    
+                
         else:
                 print("no exist")   
 
