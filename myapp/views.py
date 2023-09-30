@@ -26,6 +26,8 @@ import chilkat2
 import requests
 import base64
 
+
+listingResult = 'no'
 @api_view(['GET','POST'])
 def addDescription(request):
     print(request.data)
@@ -52,7 +54,7 @@ def deleteDescription(request,id=None):
 
 @api_view(['GET','POST'])
 def getSellerProfile(request):
-    api = Policies(domain='svcs.ebay.com',config_file='ebay.yaml')
+    api = Policies(domain='svcs.ebay.com', appid="ronaldha-getItems-PRD-87284ce84-5ae3d9bf",certid="PRD-7284ce84eebb-5140-4802-8969-1f50",devid="da34ba40-4ce8-472d-a43a-ab641d551ef7",token="v^1.1#i^1#f^0#r^1#p^3#I^3#t^Ul4xMF8yOjY5MEM4MUNBOTc4NDlGNDQ0RTZGMDk2MjNCMEU3NjVBXzNfMSNFXjI2MA==",config_file=None)
     res = api.execute('getSellerProfiles')
     result = res.dict()
     paymentProfiles = result['paymentProfileList']['PaymentProfile']
@@ -130,7 +132,7 @@ def getProductDetail(itemId):
 def addProduct(title,qty,price,categoryId,conditionId,pictureURLs,itemSpecifics):
     
     try:
-        api = Trading(domain='api.ebay.com',config_file='ebay.yaml',siteid=0)
+        api = Trading(domain='api.ebay.com',appid="ronaldha-getItems-PRD-87284ce84-5ae3d9bf",certid="PRD-7284ce84eebb-5140-4802-8969-1f50",devid="da34ba40-4ce8-472d-a43a-ab641d551ef7",token="v^1.1#i^1#f^0#r^1#p^3#I^3#t^Ul4xMF8yOjY5MEM4MUNBOTc4NDlGNDQ0RTZGMDk2MjNCMEU3NjVBXzNfMSNFXjI2MA==",config_file=None,siteid=0)
        
         request = {
                         "Item":{
@@ -250,6 +252,7 @@ def listProduct(request):
         except ConnectionError as e:
                 print(e)
                 print(e.response.dict())
+                return Response({'status':'500','message':'error'})
         searchResult = []
         if 'searchResult' in res:
                 for row in res['searchResult']['item']:
@@ -285,7 +288,8 @@ def listProduct(request):
                      break                                                    
                 
         else:
-                print("no exist")   
+                print("no exist")  
+                return Response({'status':'300','message':'item is not existed in store'}) 
 
    serializer = LogSerializer(data = {'store_name':storeName,'listed_cn':listedCount})
    if serializer.is_valid():
@@ -295,6 +299,8 @@ def listProduct(request):
    logs = Log.objects.all()
    serializer = LogSerializer(logs, many=True)
    print(serializer.data)
+   global listingResult   
+   listingResult = 'success'
    return Response({"status": "200", "result": serializer.data}, status=status.HTTP_200_OK) 
 
 
@@ -382,4 +388,11 @@ def getOAuthToken():
     return access_token
    
 
+@api_view(['GET','POST'])
+def getStatus(request):
+     global listingResult
+     if(listingResult == 'success'):
+          return Response({'status':'success'})
+     else:
+          return Response({'status':'no'})
 
