@@ -25,9 +25,11 @@ import sys
 import chilkat2
 import requests
 import base64
+import time
 
 
-listingResult = 'no'
+listResult = 'no'
+extractResult = 'no'
 @api_view(['GET','POST'])
 def addDescription(request):
     print(request.data)
@@ -102,45 +104,47 @@ def getProductDetail(itemId):
         pass
         return False    
     try:
-        title = result['Item']['Title']
-        qty = result['Item']['Quantity']
-        price = result['Item']['ConvertedCurrentPrice']['value']
-        categoryId = result['Item']['PrimaryCategoryID']
-        conditionId = result['Item']['ConditionID']
-        pictureURLs = result['Item']['PictureURL']
-        itemSpecifics = result['Item']['ItemSpecifics']['NameValueList']
-        
+        if 'Title' in result['Item'] and 'Quantity' in result['Item'] and 'ConvertedCurrentPrice' in result['Item'] and 'PrimaryCategoryID' in result['Item'] and 'ConditionID' in result['Item'] and  'PictureURL' in result['Item'] and 'ItemSpecifics' in result['Item']:
+            title = result['Item']['Title']
+            title = title.replace("&", "&amp;")
+            qty = result['Item']['Quantity']
+            price = result['Item']['ConvertedCurrentPrice']['value']
+            categoryId = result['Item']['PrimaryCategoryID']
+            conditionId = result['Item']['ConditionID']
+            pictureURLs = result['Item']['PictureURL']
+            itemSpecifics = result['Item']['ItemSpecifics']['NameValueList']
+            sku = result['Item']['SKU']
+            for itemSpecific in itemSpecifics:
+                itemSpecific['Name'] = itemSpecific['Name'].replace("&","&amp;")
+                itemSpecific['Value'] = itemSpecific['Value'].replace("&","&amp;")
+            print("title",title)    
+            print("qty",qty)    
+            print("price",price)    
+            # print("categoryId",categoryId)    
+            # print("conditionId",conditionId)    
+            # print("pictureURLs",pictureURLs)    
+            print("itemSpec",itemSpecifics) 
+        else:
+            return False       
     except ConnectionError as e:
         print(e)
         print(e.response.dict())
-        pass
         return False
-    
-    if price !='0':
-            try:
-                print("hi")
-           # addProduct(title,qty,price,categoryId,conditionId,pictureURLs,itemSpecifics)
-            except ConnectionError as e:
-                print(e)
-                print(e.response.dict())
-                pass
-                return False
+
+    if qty !='0':
+            return [title,qty,price,categoryId,conditionId,pictureURLs,itemSpecifics,sku]
     else:
             return False
 
 
-def addProduct(title,qty,price,categoryId,conditionId,pictureURLs,itemSpecifics):
+def addProduct(title,qty,price,profitRate,categoryId,conditionId,pictureURLs,itemSpecifics,sku,businessPolicy,description):
     
     try:
         api = Trading(domain='api.ebay.com',appid="ronaldha-getItems-PRD-87284ce84-5ae3d9bf",certid="PRD-7284ce84eebb-5140-4802-8969-1f50",devid="da34ba40-4ce8-472d-a43a-ab641d551ef7",token="v^1.1#i^1#f^0#r^1#p^3#I^3#t^Ul4xMF8yOjY5MEM4MUNBOTc4NDlGNDQ0RTZGMDk2MjNCMEU3NjVBXzNfMSNFXjI2MA==",config_file=None,siteid=0)
        
         request = {
                         "Item":{
-                                        "Title":"{}".format(title),
-                                        "BestOfferDetails":{
-                                            "BestOfferEnabled":"true"
-                                        },
-    
+                                        "Title":"<![CDATA[{0}]]>".format(title),
                                         "Description":"{}".format(description),
                                         "ListingDuration":"GTC",
                                         "ListingType":"FixedPriceItem",
@@ -150,9 +154,9 @@ def addProduct(title,qty,price,categoryId,conditionId,pictureURLs,itemSpecifics)
                                         "Currency":"USD",
                                         "Quantity":"{}".format(qty),
                                         "ConditionID":"{}".format(conditionId),
-                                        
+                                        "SKU":"{}".format(sku),
                                         "ItemSpecifics":{
-                                            "NameValueList":itemSpecifics
+                                            "NameValueList":itemSpecifics,
                                         },
                                         "PaymentMethods":"PayPal",
                                         "PayPalEmailAddress":"kevinzoo.lancer@gmail.com",
@@ -218,25 +222,19 @@ def addProduct(title,qty,price,categoryId,conditionId,pictureURLs,itemSpecifics)
         pass     
 
 @api_view(['GET','POST'])
-def listProduct(request):
+def getProducts(request):
    global token
    token =  getOAuthToken()
    print(token)
    
    inputs = request.data
-   global businessPolicy
-   global description
-   global storeName 
-   global profitRate
-   businessPolicy = inputs['businessPolicy']
-   description = inputs['description']
+   global storeName    
    storeName = inputs['storeName']
-   profitRate = inputs['profitRate']
    
    api = finding(domain='svcs.ebay.com',config_file='ebay.yaml')
    listedCount = 0
    pageNumber = 1
-   while(listedCount < 100):
+   while(listedCount <= 3):
 
         try:
                 api_request = {
@@ -263,20 +261,41 @@ def listProduct(request):
                             searchResult.append(itemId)
                             result = Product.objects.filter(item_id=itemId).first()
                             if result is None:
-                                serializer = ProductSerializer(data={'item_id':itemId})
-                                if serializer.is_valid():
-                                        try:
-                                            result = getProductDetail(itemId)
-                                            if result != False:
-                                                listedCount = listedCount + 1
-                                                print(listedCount)
+                               
+                                    try:
+                                        result = getProductDetail(itemId)
+                                        time.sleep(10)
+                                      
+                                        if result != False:
+                                            listedCount = listedCount + 1
+                                            print(listedCount)
+                                            latest_listing_id = Log.objects.latest('id').id
+                                            latest_listing_id = int(latest_listing_id) + 1
+                                            image_urls = json.dumps(result[5])
+                                            specifics = json.dumps(result[6])
+                                            print("latest",latest_listing_id)
+                                            
+
+                                            serializer = ProductSerializer(data={'listing_id':latest_listing_id,'item_id':itemId,'title':result[0],'qty':result[1],'price':result[2],'category_id':result[3],'condition_id':result[4],'picture_urls':json.dumps(result[5]),'item_specifics':json.dumps(result[6]),'sku':result[7]})
+                                            print('serializer')
+                                            if serializer.is_valid():
+                                                print("is_valid")
                                                 serializer.save()
-                                                if(listedCount > 100):
-                                                    break
-                                        except:
-                                              pass                                                
-                                else:
-                                    pass
+                                            else:
+                                                print(serializer.errors)
+                                                pass
+                                          
+                                        else:
+                                            print(result)
+                                        if(listedCount >= 3):
+                                            break
+                                       
+                                    except ConnectionError as e:
+                                        print(e)
+                                        print(e.response.dict())
+                                        time.sleep(10)
+                                        pass                                             
+                              
                             else:
                                  pass  
                 if(pageNumber < 100):
@@ -284,7 +303,7 @@ def listProduct(request):
                 else:
                      break
                 
-                if(listedCount > 100):
+                if(listedCount >= 3):
                      break                                                    
                 
         else:
@@ -299,8 +318,8 @@ def listProduct(request):
    logs = Log.objects.all()
    serializer = LogSerializer(logs, many=True)
    print(serializer.data)
-   global listingResult   
-   listingResult = 'success'
+   global extractResult   
+   extractResult = 'success'
    return Response({"status": "200", "result": serializer.data}, status=status.HTTP_200_OK) 
 
 
@@ -390,9 +409,76 @@ def getOAuthToken():
 
 @api_view(['GET','POST'])
 def getStatus(request):
-     global listingResult
-     if(listingResult == 'success'):
-          return Response({'status':'success'})
+     global extractResult
+     if(extractResult == 'success'):
+         logs = Log.objects.all()
+         serializer = LogSerializer(logs, many=True)
+         print(serializer.data)
+         return Response({"status": "success", "result": serializer.data}, status=status.HTTP_200_OK) 
      else:
           return Response({'status':'no'})
+
+@api_view(['GET','POST'])
+def getDetail(request):
+    input = request.data
+    products = Product.objects.filter(listing_id=input['listing_id'])
+    serializer = ProductSerializer(products, many=True)
+    return Response({"status": "200", "result": serializer.data}, status=status.HTTP_200_OK) 
+
+      
+@api_view(['GET','POST'])
+def update(request):
+    input = request.data
+    product_id = input['product_id']
+   
+    product = Product.objects.get(id=product_id)
+    serializer = ProductSerializer(product,input['data'],partial=True)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"status": "200"}, status=status.HTTP_200_OK)   
+
+@api_view(['GET','POST'])        
+def listProduct(request):
+    inputs = request.data
+
+    logId = inputs['logId']
+    businessPolicy = inputs['businessPolicy']
+    description = inputs['description']
+    profitRate = inputs['profitRate']
+    checkboxList = inputs['checkboxList']
+
+    products = Product.objects.filter(listing_id=logId)
+    serializer = ProductSerializer(products, many=True)
+    product_list = serializer.data
+
+    try:
+        for product in product_list:
+            if (str(product['id']) in checkboxList):
+                continue
+            else:
+                addProduct(product['title'],product['qty'],product['price'],profitRate, product['category_id'], product['condition_id'],json.loads(product['picture_urls']),json.loads(product['item_specifics']), product['sku'],businessPolicy,description)    
+    except ConnectionError as e:
+        print(e)
+        print(e.response.dict())
+        return Response({'status':'500'})
+    
+    global listResult
+    listResult = "success"
+    return Response({'status':'200'})
+
+
+@api_view(['GET','POST'])
+def getListStatus(request):
+     global listResult
+     if(listResult == 'success'):
+         logs = Log.objects.all()
+         serializer = LogSerializer(logs, many=True)
+         print(serializer.data)
+         return Response({"status": "success", "result": serializer.data}, status=status.HTTP_200_OK) 
+     else:
+          return Response({'status':'no'})
+
+
+
 

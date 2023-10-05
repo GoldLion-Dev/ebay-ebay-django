@@ -18,6 +18,15 @@ class Description(models.Model):
 
 class Product(models.Model):
   item_id = models.CharField(max_length=255)
+  listing_id = models.CharField(max_length=255)
+  title = models.CharField(max_length=255)
+  price = models.CharField(max_length=255)
+  qty = models.CharField(max_length=255)
+  category_id = models.CharField(max_length=255)
+  condition_id = models.CharField(max_length=255)
+  picture_urls = models.TextField(max_length=10000)
+  item_specifics = models.TextField(max_length=10000)
+  sku = models.CharField(max_length=255)
   class Meta:
         db_table = 'product'         
 

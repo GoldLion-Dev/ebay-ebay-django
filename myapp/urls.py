@@ -8,6 +8,10 @@ urlpatterns = [
     path('deleteDescription',views.deleteDescription),
     path('listProduct',views.listProduct),
     path('getLog',views.getLog),
-    path('getStatus',views.getStatus)
+    path('getStatus',views.getStatus),
+    path('getDetail',views.getDetail),
+    path('update',views.update),
+    path('getProducts',views.getProducts),
+    path('getListStatus',views.getListStatus),
 
 ]
