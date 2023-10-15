@@ -26,10 +26,11 @@ import chilkat2
 import requests
 import base64
 import time
-
+import pytz
 
 listResult = 'no'
 extractResult = 'no'
+descriptionFlagResult = ''
 @api_view(['GET','POST'])
 def addDescription(request):
     print(request.data)
@@ -56,7 +57,9 @@ def deleteDescription(request,id=None):
 
 @api_view(['GET','POST'])
 def getSellerProfile(request):
-    api = Policies(domain='svcs.ebay.com', appid="ronaldha-getItems-PRD-87284ce84-5ae3d9bf",certid="PRD-7284ce84eebb-5140-4802-8969-1f50",devid="da34ba40-4ce8-472d-a43a-ab641d551ef7",token="v^1.1#i^1#f^0#r^1#p^3#I^3#t^Ul4xMF8yOjY5MEM4MUNBOTc4NDlGNDQ0RTZGMDk2MjNCMEU3NjVBXzNfMSNFXjI2MA==",config_file=None)
+    print(request.data)
+    inputs = request.data
+    api = Policies(domain='svcs.ebay.com', appid="ronaldha-getItems-PRD-87284ce84-5ae3d9bf",certid="PRD-7284ce84eebb-5140-4802-8969-1f50",devid="da34ba40-4ce8-472d-a43a-ab641d551ef7",token=inputs['token'], config_file=None)
     res = api.execute('getSellerProfiles')
     result = res.dict()
     paymentProfiles = result['paymentProfileList']['PaymentProfile']
@@ -89,7 +92,7 @@ def getSellerProfile(request):
 
 def getProductDetail(itemId):
     api_request = {
-                    'IncludeSelector':'ItemSpecifics,Details',
+                    'IncludeSelector':'ItemSpecifics,Details,Description',
                     'ItemID':itemId
                   }
                 
@@ -98,13 +101,14 @@ def getProductDetail(itemId):
     try:
         res= api.execute('GetSingleItem', api_request)
         result = res.dict()
+       
     except ConnectionError as e:
         print(e)
         print(e.response.dict())
         pass
         return False    
     try:
-        if 'Title' in result['Item'] and 'Quantity' in result['Item'] and 'ConvertedCurrentPrice' in result['Item'] and 'PrimaryCategoryID' in result['Item'] and 'ConditionID' in result['Item'] and  'PictureURL' in result['Item'] and 'ItemSpecifics' in result['Item']:
+        if 'Title' in result['Item'] and 'Description' in result['Item'] and 'Quantity' in result['Item'] and 'ConvertedCurrentPrice' in result['Item'] and 'PrimaryCategoryID' in result['Item'] and 'ConditionID' in result['Item'] and  'PictureURL' in result['Item'] and 'ItemSpecifics' in result['Item'] and 'SKU' in result['Item']:
             title = result['Item']['Title']
             title = title.replace("&", "&amp;")
             qty = result['Item']['Quantity']
@@ -114,16 +118,18 @@ def getProductDetail(itemId):
             pictureURLs = result['Item']['PictureURL']
             itemSpecifics = result['Item']['ItemSpecifics']['NameValueList']
             sku = result['Item']['SKU']
+            description = result['Item']['Description']
             for itemSpecific in itemSpecifics:
                 itemSpecific['Name'] = itemSpecific['Name'].replace("&","&amp;")
-                itemSpecific['Value'] = itemSpecific['Value'].replace("&","&amp;")
-            print("title",title)    
-            print("qty",qty)    
-            print("price",price)    
-            # print("categoryId",categoryId)    
-            # print("conditionId",conditionId)    
-            # print("pictureURLs",pictureURLs)    
-            print("itemSpec",itemSpecifics) 
+                if type(itemSpecific['Value']) == list:
+                    temp_list = []
+                    for value in itemSpecific['Value']:
+                        value = value.replace("&","&amp;")
+                        temp_list.append(value)
+                    itemSpecific['Value']   = temp_list  
+                else:
+                    itemSpecific['Value'] = itemSpecific['Value'].replace("&","&amp;")
+            
         else:
             return False       
     except ConnectionError as e:
@@ -132,20 +138,28 @@ def getProductDetail(itemId):
         return False
 
     if qty !='0':
-            return [title,qty,price,categoryId,conditionId,pictureURLs,itemSpecifics,sku]
+            return [title,qty,price,categoryId,conditionId,pictureURLs,itemSpecifics,sku,description]
     else:
             return False
 
 
-def addProduct(title,qty,price,profitRate,categoryId,conditionId,pictureURLs,itemSpecifics,sku,businessPolicy,description):
+def addProduct(title,qty,price,profitRate,categoryId,conditionId,pictureURLs,itemSpecifics,sku,businessPolicy,templateDescription,bestofferFlag,accountToken,descriptionFlag,description):
     
     try:
-        api = Trading(domain='api.ebay.com',appid="ronaldha-getItems-PRD-87284ce84-5ae3d9bf",certid="PRD-7284ce84eebb-5140-4802-8969-1f50",devid="da34ba40-4ce8-472d-a43a-ab641d551ef7",token="v^1.1#i^1#f^0#r^1#p^3#I^3#t^Ul4xMF8yOjY5MEM4MUNBOTc4NDlGNDQ0RTZGMDk2MjNCMEU3NjVBXzNfMSNFXjI2MA==",config_file=None,siteid=0)
+        if descriptionFlag == True:
+            listDescription = description
+        else:
+            listDescription = templateDescription
+        print(listDescription)        
+        api = Trading(domain='api.ebay.com',appid="ronaldha-getItems-PRD-87284ce84-5ae3d9bf",certid="PRD-7284ce84eebb-5140-4802-8969-1f50",devid="da34ba40-4ce8-472d-a43a-ab641d551ef7",token=accountToken,config_file=None,siteid=0)
        
         request = {
                         "Item":{
                                         "Title":"<![CDATA[{0}]]>".format(title),
-                                        "Description":"{}".format(description),
+                                        "BestOfferDetails":{
+                                            "BestOfferEnabled":"{}".format(bestofferFlag)
+                                        },
+                                        "Description":"<![CDATA[{0}]]>".format(listDescription),
                                         "ListingDuration":"GTC",
                                         "ListingType":"FixedPriceItem",
                                         "Location":"Japan",
@@ -234,6 +248,24 @@ def getProducts(request):
    api = finding(domain='svcs.ebay.com',config_file='ebay.yaml')
    listedCount = 0
    pageNumber = 1
+    # current date and time
+   date_time = datetime.now(tz=pytz.timezone('Asia/Tokyo'))
+
+    # format specification
+   format = '%Y-%m-%d %H:%M:%S'
+
+    
+    # applying strftime() to format the datetime
+   string = date_time.strftime(format)
+   serializer = LogSerializer(data = {'store_name':storeName,'listed_cn':string})
+   if serializer.is_valid():
+        serializer.save()
+   else:
+        pass
+
+   t1 = datetime.now()
+
+        
    while(listedCount <= 3):
 
         try:
@@ -264,19 +296,19 @@ def getProducts(request):
                                
                                     try:
                                         result = getProductDetail(itemId)
-                                        time.sleep(10)
+                                        time.sleep(1)
                                       
                                         if result != False:
                                             listedCount = listedCount + 1
                                             print(listedCount)
                                             latest_listing_id = Log.objects.latest('id').id
-                                            latest_listing_id = int(latest_listing_id) + 1
+                                           
                                             image_urls = json.dumps(result[5])
                                             specifics = json.dumps(result[6])
                                             print("latest",latest_listing_id)
                                             
-
-                                            serializer = ProductSerializer(data={'listing_id':latest_listing_id,'item_id':itemId,'title':result[0],'qty':result[1],'price':result[2],'category_id':result[3],'condition_id':result[4],'picture_urls':json.dumps(result[5]),'item_specifics':json.dumps(result[6]),'sku':result[7]})
+                                            converted_title = result[0] + ' #A' + str(listedCount)
+                                            serializer = ProductSerializer(data={'listing_id':latest_listing_id,'item_id':itemId,'title':converted_title,'qty':result[1],'price':result[2],'category_id':result[3],'condition_id':result[4],'picture_urls':json.dumps(result[5]),'item_specifics':json.dumps(result[6]),'sku':result[7],'description':result[8]})
                                             print('serializer')
                                             if serializer.is_valid():
                                                 print("is_valid")
@@ -287,6 +319,16 @@ def getProducts(request):
                                           
                                         else:
                                             print(result)
+                                              # current date and time
+                                        t2 = datetime.now()
+
+                                            # get difference
+                                        delta = t2 - t1
+                                        print("delta",delta)
+                                            # time difference in seconds
+                                        if (delta.total_seconds() > 100):
+                                            break    
+
                                         if(listedCount >= 3):
                                             break
                                        
@@ -297,7 +339,10 @@ def getProducts(request):
                                         pass                                             
                               
                             else:
-                                 pass  
+                                 pass
+                       # time difference in seconds
+                if (delta.total_seconds() > 100):
+                    break               
                 if(pageNumber < 100):
                      pageNumber = pageNumber + 1    
                 else:
@@ -309,12 +354,8 @@ def getProducts(request):
         else:
                 print("no exist")  
                 return Response({'status':'300','message':'item is not existed in store'}) 
-
-   serializer = LogSerializer(data = {'store_name':storeName,'listed_cn':listedCount})
-   if serializer.is_valid():
-        serializer.save()
-   else:
-        pass
+   
+   
    logs = Log.objects.all()
    serializer = LogSerializer(logs, many=True)
    print(serializer.data)
@@ -444,9 +485,12 @@ def listProduct(request):
 
     logId = inputs['logId']
     businessPolicy = inputs['businessPolicy']
-    description = inputs['description']
+    templateDescription = inputs['description']
     profitRate = inputs['profitRate']
     checkboxList = inputs['checkboxList']
+    bestofferList = inputs['checkboxbestoffer']
+    accountToken = inputs['account']
+    bestofferFlag = True
 
     products = Product.objects.filter(listing_id=logId)
     serializer = ProductSerializer(products, many=True)
@@ -457,7 +501,15 @@ def listProduct(request):
             if (str(product['id']) in checkboxList):
                 continue
             else:
-                addProduct(product['title'],product['qty'],product['price'],profitRate, product['category_id'], product['condition_id'],json.loads(product['picture_urls']),json.loads(product['item_specifics']), product['sku'],businessPolicy,description)    
+                if(str(product['id']) in bestofferList):
+                    bestofferFlag = True
+                else:
+                    bestofferFlag = False  
+                if templateDescription == 'default':
+                    descriptionFlag = True
+                else:
+                    descriptionFlag = False          
+                addProduct(product['title'],product['qty'],product['price'],profitRate, product['category_id'], product['condition_id'],json.loads(product['picture_urls']),json.loads(product['item_specifics']), product['sku'],businessPolicy,templateDescription,bestofferFlag,accountToken,descriptionFlag,product['description'])    
     except ConnectionError as e:
         print(e)
         print(e.response.dict())
@@ -465,7 +517,9 @@ def listProduct(request):
     
     global listResult
     listResult = "success"
-    return Response({'status':'200'})
+    global descriptionFlagResult
+    descriptionFlagResult = descriptionFlag
+    return Response({'status':'200','result':descriptionFlag})
 
 
 @api_view(['GET','POST'])
@@ -482,3 +536,18 @@ def getListStatus(request):
 
 
 
+@api_view(['GET','POST'])
+def titleUpdate(request):
+    inputs = request.data
+    products = inputs['products']
+    for key in products.keys():
+ 
+        product = Product.objects.get(id=key)
+        serializer = ProductSerializer(product,{"title":products[key]},partial=True)
+      
+        if serializer.is_valid():
+            print('valid')
+            serializer.save()
+        else:
+            pass    
+    return Response({"status": "200"}, status=status.HTTP_200_OK)   

@@ -27,6 +27,8 @@ class Product(models.Model):
   picture_urls = models.TextField(max_length=10000)
   item_specifics = models.TextField(max_length=10000)
   sku = models.CharField(max_length=255)
+  description = models.TextField(max_length=30000)
+
   class Meta:
         db_table = 'product'         
 

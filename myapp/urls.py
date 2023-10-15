@@ -13,5 +13,6 @@ urlpatterns = [
     path('update',views.update),
     path('getProducts',views.getProducts),
     path('getListStatus',views.getListStatus),
+    path('titleUpdate',views.titleUpdate),
 
 ]
