@@ -17,18 +17,18 @@ class Description(models.Model):
         db_table = 'description' 
 
 class Product(models.Model):
-  item_id = models.CharField(max_length=255)
-  listing_id = models.CharField(max_length=255)
-  title = models.CharField(max_length=255)
-  price = models.CharField(max_length=255)
-  qty = models.CharField(max_length=255)
-  category_id = models.CharField(max_length=255)
-  condition_id = models.CharField(max_length=255)
-  picture_urls = models.TextField(max_length=10000)
-  item_specifics = models.TextField(max_length=10000)
-  sku = models.CharField(max_length=255)
-  description = models.TextField(max_length=30000)
-
+  item_id = models.CharField(max_length=255,null=True)
+  listing_id = models.CharField(max_length=255,null=True)
+  title = models.CharField(max_length=255,null=True)
+  price = models.CharField(max_length=255,null=True)
+  qty = models.CharField(max_length=255,null=True)
+  category_id = models.CharField(max_length=255,null=True)
+  condition_id = models.CharField(max_length=255,null=True)
+  picture_urls = models.TextField(max_length=10000,null=True)
+  item_specifics = models.TextField(max_length=10000,null=True)
+  sku = models.CharField(max_length=255,null=True)
+  description = models.TextField(max_length=30000,null=True)
+  account_token = models.TextField(max_length=1000,null=True)
   class Meta:
         db_table = 'product'         
 

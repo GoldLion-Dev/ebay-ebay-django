@@ -85,9 +85,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'ebay',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
+        'USER': 'admin',
+        'PASSWORD': 'ronald19680906',
+        'HOST': 'database-1.car8s79mcv9o.us-east-1.rds.amazonaws.com',
         'PORT': '3306',
     }
 }
