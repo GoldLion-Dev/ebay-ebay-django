@@ -27,10 +27,18 @@ import requests
 import base64
 import time
 import pytz
+import math
 
 listResult = 'no'
 extractResult = 'no'
 descriptionFlagResult = ''
+data = ''
+productCountPerExtract = ''
+systemStatus = 'process'
+previousCallTime = ''
+listedCount = 0
+productCount = 0
+productList_cn = 0
 @api_view(['GET','POST'])
 def addDescription(request):
     print(request.data)
@@ -91,6 +99,7 @@ def getSellerProfile(request):
     return Response(result)
 
 def getProductDetail(itemId):
+    global data
     api_request = {
                     'IncludeSelector':'ItemSpecifics,Details,Description,ShippingCosts',
                     'ItemID':itemId
@@ -101,14 +110,17 @@ def getProductDetail(itemId):
     try:
         res= api.execute('GetSingleItem', api_request)
         result = res.dict()
-       
+        
+        
+        
     except ConnectionError as e:
         print(e)
         print(e.response.dict())
+        data = e.response.dict()
         pass
         return False    
     try:
-        if 'Title' in result['Item'] and 'Description' in result['Item'] and 'Quantity' in result['Item'] and 'ConvertedCurrentPrice' in result['Item'] and 'PrimaryCategoryID' in result['Item'] and 'ConditionID' in result['Item'] and  'PictureURL' in result['Item'] and 'ItemSpecifics' in result['Item'] and 'SKU' in result['Item'] and 'ShippingServiceCost' in result['Item']['ShippingCostSummary']:
+        if 'Title' in result['Item'] and 'Description' in result['Item'] and 'Quantity' in result['Item'] and 'ConvertedCurrentPrice' in result['Item'] and 'PrimaryCategoryID' in result['Item'] and 'ConditionID' in result['Item'] and  'PictureURL' in result['Item'] and 'ItemSpecifics' in result['Item']:
             title = result['Item']['Title']
             qty = result['Item']['Quantity']
             price = result['Item']['ConvertedCurrentPrice']['value']
@@ -116,12 +128,18 @@ def getProductDetail(itemId):
             conditionId = result['Item']['ConditionID']
             pictureURLs = result['Item']['PictureURL']
             itemSpecifics = result['Item']['ItemSpecifics']['NameValueList']
-            sku = result['Item']['SKU']
             description = result['Item']['Description']
-            shippingCost = result['Item']['ShippingCostSummary']['ShippingServiceCost']['value']
-            print(shippingCost)
-            if shippingCost != '0.0':
-                return False
+            if 'SKU' in result['Item']:
+                sku = result['Item']['SKU']
+            else:
+                sku = '存在しない'
+
+                
+            if 'ShippingCostSummary' in result['Item'] and 'ShippingServiceCost' in result['Item']['ShippingCostSummary'] and 'value' in result['Item']['ShippingCostSummary']['ShippingServiceCost']:       
+                shippingCost = result['Item']['ShippingCostSummary']['ShippingServiceCost']['value']
+            else:
+                shippingCost = '存在しない'   
+            print(shippingCost)     
             if type(itemSpecifics) == list:
                 for itemSpecific in itemSpecifics:
                     itemSpecific['Name'] = itemSpecific['Name'].replace("&","&amp;")
@@ -153,18 +171,27 @@ def getProductDetail(itemId):
 
     print(qty)
     if qty !='0':
-            return [title,qty,price,categoryId,conditionId,pictureURLs,itemSpecifics,sku,description]
+            return [title,qty,price,categoryId,conditionId,pictureURLs,itemSpecifics,sku,description,shippingCost]
     else:
             return False
 
 
-def addProduct(title,qty,price,profitRate,categoryId,conditionId,pictureURLs,itemSpecifics,sku,businessPolicy,templateDescription,bestofferFlag,accountToken,descriptionFlag,description):
+def addProduct(product_id,title,qty,price,profitRate,categoryId,conditionId,pictureURLs,itemSpecifics,sku,businessPolicy,templateDescription,bestofferFlag,accountToken,descriptionFlag,description):
     
     try:
         if descriptionFlag == True:
             listDescription = description
         else:
             listDescription = templateDescription
+
+        if sku == '存在しない':
+            sku = ''    
+        print(businessPolicy['payment']['profileName'])
+        print(businessPolicy['payment']['profileId'])
+        print(businessPolicy['return']['profileName'])
+        print(businessPolicy['return']['profileId'])
+        print(businessPolicy['shipping']['profileName'])
+        print(businessPolicy['shipping']['profileId'])
         api = Trading(domain='api.ebay.com',appid="ronaldha-getItems-PRD-87284ce84-5ae3d9bf",certid="PRD-7284ce84eebb-5140-4802-8969-1f50",devid="da34ba40-4ce8-472d-a43a-ab641d551ef7",token=accountToken,config_file=None,siteid=0)
        
         request = {
@@ -243,7 +270,15 @@ def addProduct(title,qty,price,profitRate,categoryId,conditionId,pictureURLs,ite
                     }
         response=api.execute("AddItem", request)
         print(response.dict())
-        print(response.reply)
+        if ('ItemID' in response.dict()):
+            res  = response.dict()
+            listed_item_id = res['ItemID']
+            obj = Product.objects.get(id=product_id)
+            obj.listed_item_id = listed_item_id
+            obj.save()
+
+
+    
     except ConnectionError as e:
         print(e)
         print(e.response.dict())
@@ -261,8 +296,15 @@ def getProducts(request):
    
    api = finding(domain='svcs.ebay.com',config_file='ebay.yaml')
    global listedCount
+   global productCountPerExtract
+   global systemStatus
+   global previousCallTime
+   global extractResult   
+   global productCount
+   extractResult = 'no'
    listedCount = 0
    pageNumber = 1
+   productCount = 0
     # current date and time
    date_time = datetime.now(tz=pytz.timezone('Asia/Tokyo'))
 
@@ -279,40 +321,74 @@ def getProducts(request):
         pass
 
    t1 = datetime.now()
-
+   previousCallTime = t1
         
-   while(listedCount <= 5):
-
+   while(listedCount <= 1000):
+      
         try:
                 api_request = {
                             'storeName': storeName,
                             'paginationInput':{
                                 'entriesPerPage':100,
                                 'pageNumber':pageNumber
-                            }
+                            },
+                            'sortOrder':'StartTimeNewest'
                         }
 
                 response = api.execute('findItemsIneBayStores', api_request)
                 res = response.dict()
+                total_entry = res['paginationOutput']['totalEntries']
+                
+                total_page = math.ceil(float(total_entry) / 100)
+                if total_page > 100:
+                    total_page = 100
+                print("total page")    
+                print(total_page)    
+                total_entry = res['paginationOutput']['totalEntries']
+                if int(total_entry) < 1000:
+                    productCountPerExtract = int(total_entry)
+                else:
+                    productCountPerExtract = 1000  
+                print(total_entry)      
+                
         except ConnectionError as e:
                 print(e)
                 print(e.response.dict())
-                return Response({'status':'500','message':'error'})
+                return Response({'status':'500','message':e.response.dict()})
         searchResult = []
-        if 'searchResult' in res:
+        
+        if 'searchResult' in res and 'item' in res['searchResult']:
+                print("page number ")
+                print(pageNumber)
+                print("product count every page")
+                print(len(res['searchResult']['item']))
                 for row in res['searchResult']['item']:
+                        print("page number ")
+                        print(pageNumber)
+                        print("product count every page")
+                        print(len(res['searchResult']['item']))
+                       
                         itemId = row['itemId']
+                        productCount = productCount + 1
+                        print("productcount")
+                        print(productCount)
+                        print("itemId")
                         print(itemId)
                         listingType = row['listingInfo']['listingType']
+                        print("listingType")
+                        print(listingType)
                         if(listingType == 'FixedPrice'):
                             searchResult.append(itemId)
                             result = Product.objects.filter(item_id=itemId).first()
                             if result is None:
-                               
+                                    print("no in database")
+                                    time.sleep(2)
                                     try:
                                         result = getProductDetail(itemId)
+                                       
                                         time.sleep(1)
-                                      
+                                        # print("product information check result")
+                                        # print(result)
                                         if result != False:
                                             listedCount = listedCount + 1
                                             print(listedCount)
@@ -325,7 +401,7 @@ def getProducts(request):
                                             converted_title = result[0] + ' #AA' + str(listedCount)
                                             if len(converted_title) >= 79:
                                                 converted_title = converted_title[:76] + '...'
-                                            serializer = ProductSerializer(data={'listing_id':latest_listing_id,'item_id':itemId,'title':converted_title,'qty':result[1],'price':result[2],'category_id':result[3],'condition_id':result[4],'picture_urls':json.dumps(result[5]),'item_specifics':json.dumps(result[6]),'sku':result[7],'description':result[8],'account_token':'AAA'})
+                                            serializer = ProductSerializer(data={'listing_id':latest_listing_id,'item_id':itemId,'title':converted_title,'qty':result[1],'price':result[2],'category_id':result[3],'condition_id':result[4],'picture_urls':json.dumps(result[5]),'item_specifics':json.dumps(result[6]),'sku':result[7],'description':'a','account_token':'AAA','shipping_cost':result[9]})
                             
                                             if serializer.is_valid():
                                                 serializer.save()
@@ -339,32 +415,63 @@ def getProducts(request):
                                         t2 = datetime.now()
 
                                             # get difference
-                                        delta = t2 - t1
-                                        print("delta",delta)
-                                            # time difference in seconds
-                                        if (delta.total_seconds() > 3600):
-                                            break    
+                                        # delta = t2 - t1
+                                        #     # time difference in seconds
+                                        # if (delta.total_seconds() > 7200):
+                                        #     break 
 
-                                        if(listedCount >= 5):
+                                        currentCallTime = datetime.now()
+                                        different = currentCallTime - previousCallTime
+                                        print("different total seconds1")
+                                        print(different.total_seconds())
+                                        if (different.total_seconds() > 10):
+                                            print("timeout1")
+                                            break       
+                                        if(listedCount >= 1000):
                                             break
                                        
                                     except ConnectionError as e:
                                         print(e)
                                         print(e.response.dict())
-                                        time.sleep(10)
+                                        
                                         pass                                             
                               
                             else:
                                  pass
-                       # time difference in seconds
-                if (delta.total_seconds() > 3600):
-                    break               
-                if(pageNumber < 100):
+
+                        t2 = datetime.now()
+
+                        # get difference
+                        delta = t2 - t1
+                                        
+                        # time difference in seconds
+                        # if (delta.total_seconds() > 7200):
+                        #     break 
+
+                        currentCallTime = datetime.now()
+                        different = currentCallTime - previousCallTime   
+                        print("different total seconds2")
+                        print(different.total_seconds())
+                        if (different.total_seconds() > 10):
+                            print("timeout2")
+                            break          
+
+                currentCallTime = datetime.now()
+                different = currentCallTime - previousCallTime   
+                print("different total seconds")
+                print(different.total_seconds())
+                if (different.total_seconds() > 10):
+                    print("timeout3")
+                    break          
+                
+                
+                
+                if(pageNumber < total_page):
                      pageNumber = pageNumber + 1    
                 else:
                      break
                 
-                if(listedCount >= 5):
+                if(listedCount >= 1000):
                      break                                                    
                 
         else:
@@ -375,8 +482,9 @@ def getProducts(request):
    logs = Log.objects.all()
    serializer = LogSerializer(logs, many=True)
    print(serializer.data)
-   global extractResult   
+   
    extractResult = 'success'
+   systemStatus = 'process'
    return Response({"status": "200", "result": serializer.data}, status=status.HTTP_200_OK) 
 
 
@@ -389,97 +497,65 @@ def getLog(request):
 
 
 def getOAuthToken():
-    # This example assumes the Chilkat API to have been previously unlocked.
-    # See Global Unlock Sample for sample code.
 
-    http = chilkat2.Http()
+ 
+        # Replace these values with your own client ID and client secret
+    client_id = "ronaldha-getItems-PRD-87284ce84-5ae3d9bf"
+    client_secret = "PRD-7284ce84eebb-5140-4802-8969-1f50"
 
-    # Implements the following CURL command:
+    # Generate the base64-encoded authorization string
+    auth_string = f"{client_id}:{client_secret}"
+    encoded_auth_string = base64.b64encode(auth_string.encode()).decode()
 
-    # curl -X POST 'https://api.sandbox.ebay.com/identity/v1/oauth2/token' \
-    #   -H 'Content-Type: application/x-www-form-urlencoded' \
-    #   -H 'Authorization: Basic UkVTVFRlc3...wZi1hOGZhLTI4MmY=' \
-    #   -d 'grant_type=client_credentials&scope=https%3A%2F%2Fapi.ebay.com%2Foauth%2Fapi_scope'
+    # Set the API endpoint URL and headers
+    token_url = "https://api.ebay.com/identity/v1/oauth2/token"
+    headers = {
+        "Authorization": f"Basic {encoded_auth_string}",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
 
-    # Use the following online tool to generate HTTP code from a CURL command
-    # Convert a cURL Command to HTTP Source Code
+    # Set the API request data
+    data = {
+        "grant_type": "client_credentials",
+        "scope": "https://api.ebay.com/oauth/api_scope"
+    }
 
-    req = chilkat2.HttpRequest()
-    req.HttpVerb = "POST"
-    req.Path = "/identity/v1/oauth2/token"
-    req.ContentType = "application/x-www-form-urlencoded"
-    req.AddParam("grant_type","client_credentials")
+    # Make the API request and get the access token
+    response = requests.post(token_url, headers=headers, data=data)
 
-    # The scope query param indicates the access to be provided by the token.
-    # Multiple scopes can be specified by separating each with a SPACE char.
-    # See the Ebay OAuth scopes documentation
-
-    scope = "https://api.ebay.com/oauth/api_scope"
-
-    req.AddParam("scope",scope)
-
-    # Setting these properties causes the Authorization: Basic UkVTVFRlc3...wZi1hOGZhLTI4MmY=
-    # header to be added.
-    http.Login = "ronaldha-getItems-PRD-87284ce84-5ae3d9bf"
-    http.Password = "PRD-7284ce84eebb-5140-4802-8969-1f50"
-    http.BasicAuth = True
-
-    # resp is a CkHttpResponse
-    resp = http.PostUrlEncoded("https://api.ebay.com/identity/v1/oauth2/token",req)
-    if (http.LastMethodSuccess == False):
-        print(http.LastErrorText)
-        sys.exit()
-
-    sbResponseBody = chilkat2.StringBuilder()
-    resp.GetBodySb(sbResponseBody)
-    jResp = chilkat2.JsonObject()
-    jResp.LoadSb(sbResponseBody)
-    jResp.EmitCompact = False
-
-    print("Response Body:")
-    print(jResp.Emit())
-
-    respStatusCode = resp.StatusCode
-    print("Response Status Code = " + str(respStatusCode))
-    if (respStatusCode >= 400):
-        print("Response Header:")
-        print(resp.Header)
-        print("Failed.")
-
-
-    # Sample JSON response:
-    # (Sample code for parsing the JSON response is shown below)
-
-    # {
-    #   "access_token": "v^1.1#i^1#p^1#r^0#I^3#f^0#t^H4s ... wu67e3xAhskz4DAAA",
-    #   "expires_in": 7200,
-    #   "token_type": "Application Access Token"
-    # }
-
-    # Sample code for parsing the JSON response...
-    # Use the following online tool to generate parsing code from sample JSON:
-    # Generate Parsing Code from JSON
-
-    access_token = jResp.StringOf("access_token")
-    return access_token
+    if response.status_code == 200:
+        access_token = response.json()["access_token"]
+        print(f"Application auth token: {access_token}")
+        return access_token
+    else:
+        print(f"Failed to get application auth token: {response.text}")
+ 
    
 
 @api_view(['GET','POST'])
 def getStatus(request):
      global extractResult
      global listedCount
+     global data
+     global productCountPerExtract
+     global previousCallTime
+     global currentCallTime
+     global systemStatus
      if(extractResult == 'success'):
          logs = Log.objects.all()
          serializer = LogSerializer(logs, many=True)
          print(serializer.data)
+
+         extractResult = 'no'
          return Response({"status": "success", "result": serializer.data}, status=status.HTTP_200_OK) 
      else:
-         return Response({'status':'no','extracted_count':listedCount})
+         previousCallTime = datetime.now()
+         return Response({'status':'no','extracted_count':listedCount,'total_count':productCountPerExtract})
 
 @api_view(['GET','POST'])
 def getDetail(request):
     input = request.data
-    products = Product.objects.filter(listing_id=input['listing_id']).values('id','item_id','title','price','picture_urls')
+    products = Product.objects.filter(listing_id=input['listing_id']).values('id','item_id','title','price','picture_urls','sku','shipping_cost','listed_item_id')
     data = list(products)
     return Response({"status": "200", "result": data}, status=status.HTTP_200_OK) 
 
@@ -526,14 +602,12 @@ def listProduct(request):
                 else:
                     bestofferFlag = False  
                 if templateDescription == 'default':
-                    descriptionFlag = True
+                    descriptionFlag = False
                 else:
                     descriptionFlag = False          
-                addProduct(product['title'],product['qty'],product['price'],profitRate, product['category_id'], product['condition_id'],json.loads(product['picture_urls']),json.loads(product['item_specifics']), product['sku'],businessPolicy,templateDescription,bestofferFlag,accountToken,descriptionFlag,product['description'])    
+                addProduct(product['id'],product['title'],product['qty'],product['price'],profitRate, product['category_id'], product['condition_id'],json.loads(product['picture_urls']),json.loads(product['item_specifics']), product['sku'],businessPolicy,templateDescription,bestofferFlag,accountToken,descriptionFlag,product['description'])    
                 productList_cn = productList_cn + 1
                 obj = Product.objects.get(id=product['id'])
-                print(obj)
-                print(accountToken)
                 obj.account_token = accountToken
                 obj.save()
     except ConnectionError as e:
@@ -585,17 +659,16 @@ def titleUpdate(request):
 
 @api_view(['GET','POST'])    
 def monitorInventory(request):
-    products = Product.objects.values_list('item_id','account_token')
+    products = Product.objects.values_list('item_id','account_token','listed_item_id')
     length = 0
     i = 0
     token = getOAuthToken()            
     item_ids = []
     for product in products:
         item_ids.append(product[0])
-        
+        if product[2] == None:
+            pass
         i = i + 1
-        print(item_ids)
-        print(i)
         if i >= 20:
             api_request = {
                             'IncludeSelector':'Details',
@@ -614,22 +687,17 @@ def monitorInventory(request):
                     item_id = item['ItemID']
                     print(qty)
                     if qty == '0':
-                        print("hi")
-                        print(product[1])
-                        print(item_id)
-                        if product[1] != 'AAA':
+                        product_result = Product.objects.get(item_id=item_id)
+                        if product_result.account_token != 'AAA':
                             try:
-                                api = Trading(domain='api.ebay.com',appid="ronaldha-getItems-PRD-87284ce84-5ae3d9bf",certid="PRD-7284ce84eebb-5140-4802-8969-1f50",devid="da34ba40-4ce8-472d-a43a-ab641d551ef7",token=product[1],config_file=None,siteid=0)
-                                request = {
-                                    'InventoryStatus':{
-                                        'ItemID':item_id,
-                                        'Quantity':'0'
-
-                                    }
-                                     
+                                api = Trading(domain='api.ebay.com',appid="ronaldha-getItems-PRD-87284ce84-5ae3d9bf",certid="PRD-7284ce84eebb-5140-4802-8969-1f50",devid="da34ba40-4ce8-472d-a43a-ab641d551ef7",token=product_result.account_token,config_file=None,siteid=0)
+                                listed_item_id = product_result.listed_item_id
+                                end_item_request = {
+                                    'ItemID': listed_item_id,
+                                    'EndingReason':'NotAvailable'
                                 }
 
-                                res=api.execute("ReviseInventoryStatus", request)
+                                response = api.execute('EndItem', end_item_request)
                                 
                               
                             except ConnectionError as e:
@@ -649,6 +717,26 @@ def monitorInventory(request):
 
         else:
             pass         
-    return Response({"status": "200"}, status=status.HTTP_200_OK)    
+    return Response({"status": "200"}, status=status.HTTP_200_OK)     
             
         
+@api_view(['GET','POST'])
+def deleteLog(request):
+    input = request.data
+    log = get_object_or_404(Log, id=input['logId'])
+    log.delete()
+    return Response({"status": "200", "data": "log Deleted"})
+
+
+      
+@api_view(['GET','POST'])
+def descriptionUpdate(request):
+    input = request.data
+    description_id = input['description_id']
+   
+    description = Description.objects.get(id=description_id)
+    serializer = DescriptionSerializer(description,input['data'],partial=True)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"status": "200"}, status=status.HTTP_200_OK)   

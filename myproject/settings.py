@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'myapp',
     'rest_framework',
     'corsheaders',
+    'channels'
 ]
 
 MIDDLEWARE = [
@@ -85,9 +86,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'ebay',
-        'USER': 'admin',
-        'PASSWORD': 'ronald19680906',
-        'HOST': 'database-1.car8s79mcv9o.us-east-1.rds.amazonaws.com',
+        'USER': 'ronald',
+        'PASSWORD': '1234',
+        'HOST': 'localhost',
         'PORT': '3306',
     }
 }

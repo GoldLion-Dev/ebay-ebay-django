@@ -12,7 +12,7 @@ class Myapp(models.Model):
 
 class Description(models.Model):
   title = models.CharField(max_length=255)
-  description = models.CharField(max_length=255)
+  description = models.TextField(max_length=10000)
   class Meta:
         db_table = 'description' 
 
@@ -29,6 +29,8 @@ class Product(models.Model):
   sku = models.CharField(max_length=255,null=True)
   description = models.TextField(max_length=30000,null=True)
   account_token = models.TextField(max_length=1000,null=True)
+  shipping_cost = models.CharField(max_length=255,null=True)
+  listed_item_id = models.CharField(max_length=255,null=True)
   class Meta:
         db_table = 'product'         
 

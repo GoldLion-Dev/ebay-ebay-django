@@ -14,6 +14,8 @@ urlpatterns = [
     path('getProducts',views.getProducts),
     path('getListStatus',views.getListStatus),
     path('titleUpdate',views.titleUpdate),
-    path('monitorInventory',views.monitorInventory)
+    path('monitorInventory',views.monitorInventory),
+    path('deleteLog',views.deleteLog),
+    path('descriptionUpdate',views.descriptionUpdate),
 
 ]
